@@ -9,11 +9,14 @@ class Vision:
     config = Config()
 
     def __init__(self):
-        self.cap = cv2.VideoCapture(0)
+        self.video_capture = cv2.VideoCapture(0)
         self.rect_cascade = cv2.CascadeClassifier(os.getcwd() + "/data/resistors.xml")
 
     def get_camera(self):
-        return self.cap.read()
+        return self.video_capture.read()
+
+    def release(self):
+        self.video_capture.release()
 
     def print_result(self, live_img):
         res_close = self.find_resistors(live_img=live_img)

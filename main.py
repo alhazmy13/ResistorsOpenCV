@@ -9,5 +9,5 @@ if __name__ == "__main__":
         _, live_img = vision.get_camera()
         vision.print_result(live_img=live_img)
         cv2.imshow("Frame", live_img)
-    vision.cap.release()
+    vision.release()
     cv2.destroyAllWindows()
