@@ -19,10 +19,10 @@ class Vision:
         self.video_capture.release()
 
     def print_result(self, live_img):
-        res_close = self.find_resistors(live_img=live_img)
-        for i in range(len(res_close)):
-            sorted_bands = self.__find_bands(res_close[i])
-            self.__draw_result(sorted_bands, live_img, res_close[i][1])
+        resistor_close = self.find_resistors(live_img=live_img)
+        for i in range(len(resistor_close)):
+            sorted_bands = self.__find_bands(resistor_close[i])
+            self.__draw_result(sorted_bands, live_img, resistor_close[i][1])
 
     def __is_valid_contour(self, cnt):
         if cv2.contourArea(cnt) < self.config.MIN_AREA:
@@ -34,13 +34,13 @@ class Vision:
                 return False
         return True
 
-    def __draw_result(self, sorted_bands, live_img, res_pos):
-        x, y, w, h = res_pos
-        str_val = ""
+    def __draw_result(self, sorted_bands, live_img, resistor_position):
+        x, y, w, h = resistor_position
+        start_value = ""
         if len(sorted_bands) in [3, 4, 5]:
             for band in sorted_bands[:-1]:
-                str_val += str(band[3])
-            int_val = int(str_val)
+                start_value += str(band[3])
+            int_val = int(start_value)
             int_val *= 10 ** sorted_bands[-1][3]
             cv2.rectangle(live_img, (x, y), (x + w, y + h), (0, 255, 0), 2)
             cv2.putText(live_img, str(int_val) + " OHMS", (x + w + 10, y), self.config.FONT, 1, (255, 255, 255), 2,
@@ -49,19 +49,19 @@ class Vision:
         cv2.rectangle(live_img, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
     def __find_bands(self, resistor_info):
-        res_img = cv2.resize(resistor_info[0], (400, 200))
-        pre_bil = cv2.bilateralFilter(res_img, 5, 80, 80)
+        resistor_img = cv2.resize(resistor_info[0], (400, 200))
+        pre_bil = cv2.bilateralFilter(resistor_img, 5, 80, 80)
         hsv = cv2.cvtColor(pre_bil, cv2.COLOR_BGR2HSV)
         thresh = cv2.adaptiveThreshold(cv2.cvtColor(pre_bil, cv2.COLOR_BGR2GRAY), 255, cv2.ADAPTIVE_THRESH_MEAN_C,
                                        cv2.THRESH_BINARY, 59, 5)
         thresh = cv2.bitwise_not(thresh)
-        bands_pos = []
+        bands_position = []
 
         check_colours = self.config.COLOUR_BOUNDS
 
-        for clr in check_colours:
-            mask = cv2.inRange(hsv, clr[0], clr[1])
-            if clr[2] == "RED":  # combining the 2 RED ranges in hsv
+        for color in check_colours:
+            mask = cv2.inRange(hsv, color[0], color[1])
+            if color[2] == "RED":  # combining the 2 RED ranges in hsv
                 red_mask2 = cv2.inRange(hsv, self.config.RED_TOP_LOWER, self.config.RED_TOP_UPPER)
                 mask = cv2.bitwise_or(red_mask2, mask, mask)
 
@@ -72,20 +72,20 @@ class Vision:
             for k in range(len(contours) - 1, -1, -1):
                 if self.__is_valid_contour(contours[k]):
                     leftmost_point = tuple(contours[k][contours[k][:, :, 0].argmin()][0])
-                    bands_pos += [leftmost_point + tuple(clr[2:])]
+                    bands_position += [leftmost_point + tuple(color[2:])]
                     cv2.circle(pre_bil, leftmost_point, 5, (255, 0, 255), -1)
                 else:
                     contours.pop(k)
 
-            cv2.drawContours(pre_bil, contours, -1, clr[-1], 3)
+            cv2.drawContours(pre_bil, contours, -1, color[-1], 3)
 
         cv2.imshow('Contour Display', pre_bil)
 
-        return sorted(bands_pos, key=lambda tup: tup[0])
+        return sorted(bands_position, key=lambda tup: tup[0])
 
     def find_resistors(self, live_img):
         _live_img = cv2.cvtColor(live_img, cv2.COLOR_BGR2GRAY)
-        res_close = []
+        resistors_close = []
 
         # detect resistors in main frame
         resistors_find = self.rect_cascade.detectMultiScale(_live_img, 1.1, 25)
@@ -98,8 +98,8 @@ class Vision:
             second_pass = self.rect_cascade.detectMultiScale(roi_gray, 1.01, 5)
 
             if len(second_pass) != 0:
-                res_close.append((np.copy(roi_color), (x, y, w, h)))
-        return res_close
+                resistors_close.append((np.copy(roi_color), (x, y, w, h)))
+        return resistors_close
 
     @staticmethod
     def pass_function():
