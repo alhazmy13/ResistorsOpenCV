@@ -2,7 +2,7 @@ import cv2
 
 from vision import Vision
 
-vision = Vision(debug=False)
+vision = Vision()
 
 if __name__ == "__main__":
     while not (cv2.waitKey(1) == ord('q')):
